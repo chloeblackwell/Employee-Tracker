@@ -1,5 +1,6 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
+const logo = require("asciiart-logo");
 
 
 var connection = mysql.createConnection({
@@ -12,15 +13,18 @@ var connection = mysql.createConnection({
     user: "root",
 
     // Your password
-    password: "joseph123$",
+    password: " ",
     database: "employeeDB"
 });
 
 connection.connect(function (err) {
     if (err) throw err;
+    // Displays start screen logo 
+    startScreen();
+    // Displays questions
     start();
 });
-
+// User input start questions 
 function start() {
     inquirer.prompt([
         {
@@ -73,35 +77,37 @@ function start() {
         }
     });
 };
-
+// View All Emplpyees
 function employees() {
     var query = "SELECT * FROM employee";
     connection.query(query, function (err, res) {
         if (err) return err;
+        // console.table for display
         console.table(res);
         start();
     });
 }
-
+// View Roles
 function roles() {
     var query = "SELECT * FROM role";
     connection.query(query, function (err, res) {
         if (err) return err;
+        // console.table for display
         console.table(res);
         start();
     });
 }
-
+// View Departments 
 function departments() {
     var query = "SELECT * FROM department";
     connection.query(query, function (err, res) {
         if (err) return err;
+        // console.table for display
         console.table(res);
         start();
     });
 }
-
-
+// Add Employee
 function addEmployee() {
     connection.query("SELECT * FROM role", (err, res) => {
         if (err) throw err;
@@ -121,6 +127,7 @@ function addEmployee() {
                 type: "list",
                 message: "What is the employees role",
                 choices: () => {
+                    // Displays the roles from the role table 
                     var roleArray = [];
                     res.forEach(res => {
                         roleArray.push(res.title)
@@ -129,14 +136,15 @@ function addEmployee() {
                 }
             }
         ]).then(function (answer) {
-            console.log(answer);
+            //console.log(answer);
             const employeeRoleId = answer.newRole;
             connection.query('SELECT * FROM role', (err, res) => {
                 if (err) throw (err);
-                let filteredRole = res.filter(function (res) {
+                var filteredRole = res.filter(function (res) {
                     return res.title == employeeRoleId;
                 })
-                let roleId = filteredRole[0].id;
+                // Finds the id for the role 
+                var roleId = filteredRole[0].id;
                 connection.query("SELECT * FROM employee", (err, res) => {
                     inquirer.prompt([
                         {
@@ -144,6 +152,7 @@ function addEmployee() {
                             type: "list",
                             message: "Who is your new employees manager?",
                             choices: () => {
+                                // Displays the managers 
                                 var managersArray = []
                                 res.forEach(res => {
                                     managersArray.push(res.first_name + " " + res.last_name)
@@ -158,13 +167,15 @@ function addEmployee() {
                             var filteredManager = res.filter(function (res) {
                                 return res.first_name + " " + res.last_name == newManager;
                             })
+                            // Finds the id for the manager 
                             var newManagerId = filteredManager[0].id;
                             //console.log(managerInput);
                             var query = "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)";
                             var values = [answer.firstName, answer.lastName, roleId, newManagerId]
                             //console.log(values);
                             connection.query(query, values, (err, res, fields) => {
-                                console.log(`You have added a new employee: ${(values[0]).toUpperCase()}.`)
+                                // Insert new employee into the table 
+                                console.log(`You have added a new employee: ${(values[0])}.`)
                             })
                             start();
                         })
@@ -174,6 +185,7 @@ function addEmployee() {
         })
     })
 }
+// Add Department
 function addDepartment() {
     inquirer.prompt([
         {
@@ -183,7 +195,8 @@ function addDepartment() {
         }
     ]).then(function (answer) {
 
-        var query = "INSERT INTO department (name)VALUES ?"
+        var query = "INSERT INTO department (name)VALUES ?";
+        // Inserts new department into department table 
         connection.query(query, [answer.department], function (err, res) {
             console.log("\n DEPARTMENT HAS BEEN ADDED \n ");
             if (err) return err;
@@ -191,7 +204,7 @@ function addDepartment() {
         start();
     });
 }
-
+// Add Roles 
 function addRoles() {
     connection.query("SELECT * FROM department", (err, res) => {
         if (err) throw err;
@@ -211,6 +224,7 @@ function addRoles() {
                 type: "list",
                 message: "What department is the new role in",
                 choices: () => {
+                    // Displays the departments from the department table 
                     var departmentArray = [];
                     res.forEach(res => {
                         departmentArray.push(
@@ -225,25 +239,26 @@ function addRoles() {
             .then(function (answer) {
                 const department = answer.roleDepartment;
                 connection.query('SELECT * FROM DEPARTMENT', function (err, res) {
-
                     if (err) throw (err);
-                    let dept = res.filter(function (res) {
+                    var dept = res.filter(function (res) {
                         return res.name == department;
                     }
                     )
-                    let roleId = dept[0].id;
-                    let query = "INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)";
-                    let values = [answer.title, parseInt(answer.salary), roleId]
+                    // Selects the id from the chosen department 
+                    var roleId = dept[0].id;
+                    var query = "INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)";
+                    var values = [answer.title, parseInt(answer.salary), roleId]
                     //console.log(values);
+                    // Inserts the new role into the role table 
                     connection.query(query, values, (err, res, fields) => {
-                        console.log(`You have added a new role: ${(values[0]).toUpperCase()}.`)
+                        console.log(`You have added a new role: ${(values[0])}.`)
                     })
                     start()
                 })
             })
     })
 }
-
+// Update Employee
 function updateEmployeeRole() {
     connection.query("SELECT * FROM employee", (err, res) => {
         if (err) throw err;
@@ -252,16 +267,19 @@ function updateEmployeeRole() {
                 name: "employeeName",
                 type: "list",
                 message: "Which employee would you like to update?",
+                // Displays employees from employee table  
                 choices: () => {
                     var employeeArray = [];
                     res.forEach(res => {
+                        // Pushes the employees into employeeArray
                         employeeArray.push(res.first_name + " " + res.last_name)
                     });
                     return employeeArray;
                 }
             }
         ]).then(function (answer) {
-            console.log(answer);
+            //console.log(answer);
+            // Selects the option the user has chosen 
             const employeeName = answer.employeeName;
             connection.query("SELECT * FROM role", (err, res) => {
                 inquirer.prompt([
@@ -270,6 +288,7 @@ function updateEmployeeRole() {
                         type: "list",
                         message: "What is their new role?",
                         choices: () => {
+                            // Displays the roles from the role table 
                             var rolesArray = [];
                             res.forEach(res => {
                                 rolesArray.push(res.title)
@@ -278,12 +297,14 @@ function updateEmployeeRole() {
                         }
                     }
                 ]).then(function (answer) {
+                    // Selects the new role that the user has chosen 
                     const role = answer.newRole;
                     connection.query("SELECT * FROM role WHERE title = ?", [role], (err, res) => {
                         if (err) throw err;
                         var updateRoleId = res[0].id;
                         var query = "UPDATE employee SET role_id ? WHERE first_name, last_name ?";
                         var values = [updateRoleId, employeeName];
+                        // Updates the employee in the table to the new role 
                         connection.query(query, values, (err, res, fields) => {
                             console.log(`You have updated this employee: ${employeeName}`);
                         })
@@ -296,10 +317,28 @@ function updateEmployeeRole() {
     })
 
 }
-
+// Quit Connection 
 function quit() {
+    // End connection
     connection.end(err => {
         if (err) throw err;
 
     })
 };
+
+// Ascii Art Logo Function 
+function startScreen() {
+    console.log(
+        logo({
+            name: 'Employee Tracker',
+            font: 'Doom',
+            lineChars: 10,
+            padding: 2,
+            margin: 3,
+            borderColor: 'grey',
+            logoColor: 'grey',
+            textColor: 'grey'
+        })
+            .render()
+    );
+}
